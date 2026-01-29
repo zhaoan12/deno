@@ -22,6 +22,7 @@ import {
   Expectation,
   EXPECTATIONS_DIR,
   generateRunInfo,
+  getCommandOptions,
   getExpectation,
   getExpectFailForCase,
   getManifest,
@@ -88,6 +89,7 @@ class TestFilter {
 }
 
 const command = Deno.args[0];
+const options = getCommandOptions();
 
 switch (command) {
   case "setup":
@@ -220,9 +222,8 @@ function getTestTimeout(test: TestToRun) {
 }
 
 async function run() {
-  assert(Array.isArray(rest), "filter must be array");
-  const hasFilters = rest.length > 0;
-  if (!hasFilters && !all) {
+  assert(Array.isArray(options.rest), "filter must be array");
+  if (!options.hasFilters && !options.all) {
     console.log(`Usage: wpt.ts run [OPTIONS] [-- <filters...>]
 
 Run WPT tests and check results against expectations.
@@ -248,7 +249,7 @@ Options:
   }
   const startTime = Date.now();
   const expectation = getExpectation();
-  const filter = new TestFilter(rest);
+  const filter = new TestFilter(options.rest);
   const tests = discoverTestsToRun(
     filter,
     expectation,
@@ -490,9 +491,8 @@ function assertAllExpectationsHaveTests(
 }
 
 async function update() {
-  assert(Array.isArray(rest), "filter must be array");
-  const hasFilters = rest.length > 0;
-  if (!hasFilters && !all) {
+  assert(Array.isArray(options.rest), "filter must be array");
+  if (!options.hasFilters && !options.all) {
     console.log(`Usage: wpt.ts update [OPTIONS] [-- <filters...>]
 
 Run WPT tests and update expectations to match current results.
@@ -514,7 +514,7 @@ Options:
     Deno.exit(1);
   }
   const startTime = Date.now();
-  const filter = new TestFilter(rest);
+  const filter = new TestFilter(options.rest);
   const tests = discoverTestsToRun(filter, true);
   console.log(`Going to run ${tests.length} test files.`);
 

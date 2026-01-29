@@ -4,6 +4,20 @@
 import { parseArgs } from "@std/cli/parse-args";
 import { checkCiHash, join, resolve, ROOT_PATH } from "../../../tools/util.js";
 
+const parsedArgs = parseArgs(Deno.args, {
+  "--": true,
+  boolean: [
+    "all",
+    "quiet",
+    "release",
+    "no-interactive",
+    "inspect-brk",
+    "no-ignore",
+    "exit-zero",
+  ],
+  string: ["json", "wptreport", "binary"],
+});
+
 export const {
   all,
   json,
@@ -15,19 +29,43 @@ export const {
   ["auto-config"]: autoConfig,
   ["inspect-brk"]: inspectBrk,
   ["no-ignore"]: noIgnore,
+  ["exit-zero"]: exitZero,
   binary,
-} = parseArgs(Deno.args, {
-  "--": true,
-  boolean: [
-    "all",
-    "quiet",
-    "release",
-    "no-interactive",
-    "inspect-brk",
-    "no-ignore",
-  ],
-  string: ["json", "wptreport", "binary"],
-});
+} = parsedArgs;
+
+export interface WptCommandOptions {
+  all: boolean;
+  autoConfig: boolean;
+  binary?: string;
+  exitZero: boolean;
+  hasFilters: boolean;
+  inspectBrk: boolean;
+  json?: string;
+  noIgnore: boolean;
+  quiet: boolean;
+  rebuild: boolean;
+  release: boolean;
+  rest: string[];
+  wptreport?: string;
+}
+
+export function getCommandOptions(): WptCommandOptions {
+  return {
+    all,
+    autoConfig,
+    binary,
+    exitZero,
+    hasFilters: rest.length > 0,
+    inspectBrk,
+    json,
+    noIgnore,
+    quiet,
+    rebuild,
+    release,
+    rest,
+    wptreport,
+  };
+}
 
 export function denoBinary() {
   if (binary) {
