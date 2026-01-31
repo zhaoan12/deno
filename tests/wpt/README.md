@@ -87,6 +87,22 @@ Running `wpt.ts run` immediately after `wpt.ts update` should always pass.
 The `update` command accepts the same flags as `run` (`--release`, `--binary`,
 `--quiet`, `--json`, `--no-ignore`, `--inspect-brk`).
 
+## Listing tests
+
+Use the `list` command to inspect which files match a set of filters without
+running them:
+
+```shell
+# List all tests in a suite
+./tests/wpt/wpt.ts list -- fetch
+
+# List a single test file
+./tests/wpt/wpt.ts list -- /WebCryptoAPI/getRandomValues.any.html
+
+# List the entire suite
+./tests/wpt/wpt.ts list --all
+```
+
 ## Expectation file format
 
 The expectations directory (`./tests/wpt/runner/expectations/`) contains one

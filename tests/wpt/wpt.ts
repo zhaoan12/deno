@@ -114,6 +114,10 @@ switch (command) {
     await update();
     break;
 
+  case "list":
+    listTests();
+    break;
+
   default:
     console.log(`Possible commands:
 
@@ -125,6 +129,9 @@ switch (command) {
 
     update
       Update the expectations directory to match the current reality.
+
+    list
+      Print the test files that match the current filters.
 
 More details at https://docs.deno.com/runtime/manual/references/contributing/web_platform_tests
 
@@ -550,6 +557,30 @@ Options:
   console.log(blue("Updated expectations to match reality."));
 
   Deno.exit(0);
+}
+
+function listTests() {
+  assert(Array.isArray(options.rest), "filter must be array");
+  if (!options.hasFilters && !options.all) {
+    console.log(`Usage: wpt.ts list [OPTIONS] [-- <filters...>]
+
+Print the matching WPT test files without running them.
+
+Either specify test filters or use --all to list the entire suite:
+
+    wpt.ts list -- fetch/api/basic
+    wpt.ts list -- /WebCryptoAPI/getRandomValues.any.html
+    wpt.ts list --all
+`);
+    Deno.exit(1);
+  }
+
+  const filter = new TestFilter(options.rest);
+  const tests = discoverTestsToRun(filter);
+  for (const test of tests) {
+    console.log(test.path);
+  }
+  console.log(`\nListed ${tests.length} test files.`);
 }
 
 function newExpectation(
