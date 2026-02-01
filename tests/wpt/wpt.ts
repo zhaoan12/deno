@@ -251,6 +251,7 @@ Options:
     --json=<file>      Write test results as JSON
     --wptreport=<file> Write results in wptreport format
     --inspect-brk      Attach V8 inspector to each test
+    --verbose-server   Stream WPT server stdout/stderr while tests run
     --no-ignore        Include tests marked with {"ignore": true}
     --exit-zero        Exit with code 0 even on failures
 `);
@@ -267,7 +268,7 @@ Options:
   const cores = getParallelism();
   console.log(`Going to run ${tests.length} test files on ${cores} cores.`);
 
-  const results = await runWithTestUtil(false, async () => {
+  const results = await runWithTestUtil(options.verboseServer, async () => {
     const results: { test: TestToRun; result: TestResult }[] = [];
     const inParallel = !(cores === 1 || tests.length === 1);
     // ideally we would parallelize all tests, but we ran into some flakiness
@@ -519,6 +520,7 @@ Options:
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
     --inspect-brk      Attach V8 inspector to each test
+    --verbose-server   Stream WPT server stdout/stderr while tests run
     --no-ignore        Include tests marked with {"ignore": true}
 `);
     Deno.exit(1);
@@ -528,7 +530,7 @@ Options:
   const tests = discoverTestsToRun(filter, true);
   console.log(`Going to run ${tests.length} test files.`);
 
-  const results = await runWithTestUtil(false, async () => {
+  const results = await runWithTestUtil(options.verboseServer, async () => {
     const results = [];
 
     for (const test of tests) {

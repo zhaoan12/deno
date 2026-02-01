@@ -66,6 +66,7 @@ Tests are run in parallel across CPU cores, partitioned by top-level directory.
 - `--wptreport=<file>` — Write results in the
   [wptreport](https://github.com/nicedoc/wpt-report) format
 - `--inspect-brk` — Attach the V8 inspector to each test
+- `--verbose-server` — Stream the WPT server's stdout and stderr
 - `--no-ignore` — Run tests marked with `{"ignore": true}` in expectations
 - `--exit-zero` — Exit with code 0 even if there are failures
 

@@ -14,6 +14,7 @@ const parsedArgs = parseArgs(Deno.args, {
     "inspect-brk",
     "no-ignore",
     "exit-zero",
+    "verbose-server",
   ],
   integer: ["jobs"],
   string: ["json", "wptreport", "binary"],
@@ -31,6 +32,7 @@ export const {
   ["inspect-brk"]: inspectBrk,
   ["no-ignore"]: noIgnore,
   ["exit-zero"]: exitZero,
+  ["verbose-server"]: verboseServer,
   jobs,
   binary,
 } = parsedArgs;
@@ -49,6 +51,7 @@ export interface WptCommandOptions {
   rebuild: boolean;
   release: boolean;
   rest: string[];
+  verboseServer: boolean;
   wptreport?: string;
 }
 
@@ -67,6 +70,7 @@ export function getCommandOptions(): WptCommandOptions {
     rebuild,
     release,
     rest,
+    verboseServer,
     wptreport,
   };
 }
