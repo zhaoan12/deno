@@ -15,6 +15,7 @@ const parsedArgs = parseArgs(Deno.args, {
     "no-ignore",
     "exit-zero",
   ],
+  integer: ["jobs"],
   string: ["json", "wptreport", "binary"],
 });
 
@@ -30,6 +31,7 @@ export const {
   ["inspect-brk"]: inspectBrk,
   ["no-ignore"]: noIgnore,
   ["exit-zero"]: exitZero,
+  jobs,
   binary,
 } = parsedArgs;
 
@@ -41,6 +43,7 @@ export interface WptCommandOptions {
   hasFilters: boolean;
   inspectBrk: boolean;
   json?: string;
+  jobs?: number;
   noIgnore: boolean;
   quiet: boolean;
   rebuild: boolean;
@@ -58,6 +61,7 @@ export function getCommandOptions(): WptCommandOptions {
     hasFilters: rest.length > 0,
     inspectBrk,
     json,
+    jobs: typeof jobs === "number" ? jobs : undefined,
     noIgnore,
     quiet,
     rebuild,
@@ -65,6 +69,14 @@ export function getCommandOptions(): WptCommandOptions {
     rest,
     wptreport,
   };
+}
+
+export function getParallelism(defaultValue = navigator.hardwareConcurrency) {
+  if (typeof jobs !== "number") {
+    return defaultValue;
+  }
+  assert(jobs > 0, "--jobs must be greater than 0");
+  return Math.max(1, Math.floor(jobs));
 }
 
 export function denoBinary() {

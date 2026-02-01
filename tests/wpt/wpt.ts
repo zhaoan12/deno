@@ -26,6 +26,7 @@ import {
   getExpectation,
   getExpectFailForCase,
   getManifest,
+  getParallelism,
   inspectBrk,
   json,
   ManifestFolder,
@@ -244,6 +245,7 @@ Either specify test filters or use --all to run the entire suite:
 Options:
     --all              Run all tests
     --quiet            Only print failing test cases
+    --jobs=<n>         Limit how many test partitions run in parallel
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
@@ -262,7 +264,7 @@ Options:
     expectation,
   );
   assertAllExpectationsHaveTests(expectation, tests, filter);
-  const cores = navigator.hardwareConcurrency;
+  const cores = getParallelism();
   console.log(`Going to run ${tests.length} test files on ${cores} cores.`);
 
   const results = await runWithTestUtil(false, async () => {
@@ -512,6 +514,7 @@ Either specify test filters or use --all to update the entire suite:
 Options:
     --all              Run all tests
     --quiet            Only print failing test cases
+    --jobs=<n>         Limit how many test partitions run in parallel
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
