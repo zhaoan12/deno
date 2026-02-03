@@ -55,6 +55,8 @@ Filters can start with `/` (absolute path match) or without (prefix match
 without the leading `/`).
 
 Tests are run in parallel across CPU cores, partitioned by top-level directory.
+If the WPT server is slow to boot in your environment, you can increase the
+startup probe deadline with `DENO_WPT_SERVER_TIMEOUT_MS=<ms>`.
 
 ### Flags
 

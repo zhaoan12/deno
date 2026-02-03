@@ -23,7 +23,7 @@ export async function runWithTestUtil<T>(
     stderr: verbose ? "inherit" : "piped",
   });
 
-  await waitForTestUtil(proc, 15_000);
+  await waitForTestUtil(proc, getServerStartupTimeout());
 
   if (verbose) console.log(`Started wpt test util.`);
 
@@ -69,6 +69,20 @@ async function waitForTestUtil(
       );
     }
   }
+}
+
+function getServerStartupTimeout(): number {
+  const value = Deno.env.get("DENO_WPT_SERVER_TIMEOUT_MS");
+  if (value == null) {
+    return 15_000;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(
+      `DENO_WPT_SERVER_TIMEOUT_MS must be a positive number, got ${JSON.stringify(value)}.`,
+    );
+  }
+  return Math.floor(parsed);
 }
 
 export interface TestResult {
