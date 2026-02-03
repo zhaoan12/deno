@@ -23,29 +23,7 @@ export async function runWithTestUtil<T>(
     stderr: verbose ? "inherit" : "piped",
   });
 
-  const start = performance.now();
-  while (true) {
-    await delay(1000);
-    try {
-      const req = await fetch("http://localhost:8000/");
-      await req.body?.cancel();
-      if (req.status == 200) {
-        break;
-      }
-    } catch (_err) {
-      // do nothing if this fails
-    }
-    const passedTime = performance.now() - start;
-    if (passedTime > 15000) {
-      try {
-        proc.kill("SIGINT");
-      } catch {
-        // Might have already died
-      }
-      await proc.status;
-      throw new Error("Timed out while trying to start wpt test util.");
-    }
-  }
+  await waitForTestUtil(proc, 15_000);
 
   if (verbose) console.log(`Started wpt test util.`);
 
@@ -59,6 +37,37 @@ export async function runWithTestUtil<T>(
       // Might have already died
     }
     await proc.status;
+  }
+}
+
+async function waitForTestUtil(
+  proc: Deno.ChildProcess,
+  timeoutMs: number,
+): Promise<void> {
+  const start = performance.now();
+  while (true) {
+    await delay(1000);
+    try {
+      const req = await fetch("http://localhost:8000/");
+      await req.body?.cancel();
+      if (req.status == 200) {
+        return;
+      }
+    } catch (_err) {
+      // ignore startup probe failures while the server is still booting
+    }
+    const passedTime = performance.now() - start;
+    if (passedTime > timeoutMs) {
+      try {
+        proc.kill("SIGINT");
+      } catch {
+        // Might have already died
+      }
+      await proc.status;
+      throw new Error(
+        `Timed out while trying to start wpt test util after ${timeoutMs}ms.`,
+      );
+    }
   }
 }
 
