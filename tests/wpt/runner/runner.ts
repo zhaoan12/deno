@@ -273,6 +273,7 @@ async function generateBundle(location: URL): Promise<string> {
   assert(doc, "document should have been parsed");
   const scripts = doc.getElementsByTagName("script");
   const title = doc.getElementsByTagName("title")[0]?.childNodes[0]?.nodeValue;
+  const shim = getShim(location.pathname);
   const scriptContents = [];
   const fetchedScriptCache = new Map<string, string>();
   let inlineScriptCount = 0;
@@ -284,7 +285,6 @@ async function generateBundle(location: URL): Promise<string> {
       `globalThis.META_TITLE=${JSON.stringify(title)}`,
     ]);
   }
-  const shim = getShim(location.pathname);
   for (const script of scripts) {
     const src = script.getAttribute("src");
     if (src === "/resources/testharnessreport.js") {
@@ -296,7 +296,6 @@ async function generateBundle(location: URL): Promise<string> {
         fetchedScriptCache,
         async () => await Deno.readTextFile(url),
       );
-      scriptContents.push([url.href, shim]);
       scriptContents.push([url.href, contents]);
     } else if (src) {
       const url = new URL(src, location);
@@ -313,17 +312,15 @@ async function generateBundle(location: URL): Promise<string> {
       ).catch((err) => {
         throw new Error(`Unable to build WPT bundle for ${location}: ${err}`);
       });
-      scriptContents.push([url.href, shim]);
       scriptContents.push([url.href, contents]);
     } else {
       const url = new URL(`#${inlineScriptCount}`, location);
       inlineScriptCount++;
-      scriptContents.push([url.href, shim]);
       scriptContents.push([url.href, script.textContent]);
     }
   }
 
-  return scriptContents.map(([url, contents]) => `
+  return [shim, ...scriptContents.map(([url, contents]) => `
 (function() {
   const [_,err] = Deno[Deno.internal].core.evalContext(${
     JSON.stringify(contents)
@@ -331,7 +328,7 @@ async function generateBundle(location: URL): Promise<string> {
   if (err !== null) {
     throw err?.thrown;
   }
-})();`).join("\n");
+})();`)].join("\n");
 }
 
 async function getScriptContents(
