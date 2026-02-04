@@ -274,6 +274,7 @@ async function generateBundle(location: URL): Promise<string> {
   const scripts = doc.getElementsByTagName("script");
   const title = doc.getElementsByTagName("title")[0]?.childNodes[0]?.nodeValue;
   const scriptContents = [];
+  const fetchedScriptCache = new Map<string, string>();
   let inlineScriptCount = 0;
   if (title) {
     const url = new URL(`#${inlineScriptCount}`, location);
@@ -290,17 +291,30 @@ async function generateBundle(location: URL): Promise<string> {
       const url = toFileUrl(
         join(ROOT_PATH, "./tests/wpt/runner/testharnessreport.js"),
       );
-      const contents = await Deno.readTextFile(url);
+      const contents = await getScriptContents(
+        url,
+        fetchedScriptCache,
+        async () => await Deno.readTextFile(url),
+      );
       scriptContents.push([url.href, shim]);
       scriptContents.push([url.href, contents]);
     } else if (src) {
       const url = new URL(src, location);
-      const res = await fetch(url);
-      if (res.ok) {
-        const contents = await res.text();
-        scriptContents.push([url.href, shim]);
-        scriptContents.push([url.href, contents]);
-      }
+      const contents = await getScriptContents(
+        url,
+        fetchedScriptCache,
+        async () => {
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error(`Failed to fetch script ${url.href}: ${res.status}`);
+          }
+          return await res.text();
+        },
+      ).catch((err) => {
+        throw new Error(`Unable to build WPT bundle for ${location}: ${err}`);
+      });
+      scriptContents.push([url.href, shim]);
+      scriptContents.push([url.href, contents]);
     } else {
       const url = new URL(`#${inlineScriptCount}`, location);
       inlineScriptCount++;
@@ -318,4 +332,18 @@ async function generateBundle(location: URL): Promise<string> {
     throw err?.thrown;
   }
 })();`).join("\n");
+}
+
+async function getScriptContents(
+  url: URL,
+  cache: Map<string, string>,
+  load: () => Promise<string>,
+): Promise<string> {
+  const cached = cache.get(url.href);
+  if (cached != null) {
+    return cached;
+  }
+  const contents = await load();
+  cache.set(url.href, contents);
+  return contents;
 }
