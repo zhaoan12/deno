@@ -248,6 +248,7 @@ Options:
     --quiet            Only print failing test cases
     --jobs=<n>         Limit how many test partitions run in parallel
     --retries=<n>      Retry failing tests up to n attempts
+    --fail-fast        Stop after the first unexpected failure
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
@@ -320,6 +321,9 @@ Options:
           console.log(`${blue("-".repeat(40))}\n${bold(test.path)}\n`);
         }
         reportVariation(result, test.expectation);
+        if (options.failFast && hasUnexpectedFailure(result, test.expectation)) {
+          throw new Error(`Stopping after first unexpected failure: ${test.path}`);
+        }
       }
     });
 
@@ -504,6 +508,7 @@ Options:
     --quiet            Only print failing test cases
     --jobs=<n>         Limit how many test partitions run in parallel
     --retries=<n>      Retry failing tests up to n attempts
+    --fail-fast        Stop after the first unexpected failure
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
@@ -532,6 +537,9 @@ Options:
       );
       results.push({ test, result });
       reportVariation(result, test.expectation);
+      if (options.failFast && hasUnexpectedFailure(result, test.expectation)) {
+        throw new Error(`Stopping after first unexpected failure: ${test.path}`);
+      }
     }
 
     return results;
