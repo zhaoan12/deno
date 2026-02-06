@@ -27,6 +27,7 @@ import {
   getExpectFailForCase,
   getManifest,
   getParallelism,
+  getRetryCount,
   inspectBrk,
   json,
   ManifestFolder,
@@ -246,6 +247,7 @@ Options:
     --all              Run all tests
     --quiet            Only print failing test cases
     --jobs=<n>         Limit how many test partitions run in parallel
+    --retries=<n>      Retry failing tests up to n attempts
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
@@ -268,6 +270,7 @@ Options:
   const cores = getParallelism();
   console.log(`Going to run ${tests.length} test files on ${cores} cores.`);
 
+  const retryCount = getRetryCount();
   const results = await runWithTestUtil(options.verboseServer, async () => {
     const results: { test: TestToRun; result: TestResult }[] = [];
     const inParallel = !(cores === 1 || tests.length === 1);
@@ -287,44 +290,28 @@ Options:
           inspectBrk,
           getTestTimeout(test),
         );
-        const isFlaky = typeof test.expectation === "object" &&
-          test.expectation !== null && test.expectation.flaky === true;
-        if (isFlaky) {
-          const isFileLevelFailure = result.status !== 0 ||
-            result.harnessStatus === null;
-          const analysis = analyzeTestResult(result, test.expectation);
-          const hasFailed = isFileLevelFailure || analysis.failedCount > 0;
-          if (hasFailed) {
-            for (let attempt = 2; attempt <= 3; attempt++) {
+        if (shouldRetryTest(test.expectation, retryCount, result)) {
+          for (let attempt = 2; attempt <= retryCount; attempt++) {
+            console.log(
+              yellow(
+                `Retrying test ${test.path} (attempt ${attempt}/${retryCount})`,
+              ),
+            );
+            const retryResult = await runSingleTest(
+              test.url,
+              test.options,
+              () => {},
+              inspectBrk,
+              getTestTimeout(test),
+            );
+            result = retryResult;
+            if (!hasUnexpectedFailure(retryResult, test.expectation)) {
               console.log(
                 yellow(
-                  `Retrying flaky test ${test.path} (attempt ${attempt}/3)`,
+                  `Test ${test.path} passed on attempt ${attempt}/${retryCount}`,
                 ),
               );
-              const retryResult = await runSingleTest(
-                test.url,
-                test.options,
-                () => {},
-                inspectBrk,
-                getTestTimeout(test),
-              );
-              const retryFileLevelFailure = retryResult.status !== 0 ||
-                retryResult.harnessStatus === null;
-              const retryAnalysis = analyzeTestResult(
-                retryResult,
-                test.expectation,
-              );
-              const retryFailed = retryFileLevelFailure ||
-                retryAnalysis.failedCount > 0;
-              if (!retryFailed) {
-                console.log(
-                  yellow(
-                    `Flaky test ${test.path} passed on attempt ${attempt}/3`,
-                  ),
-                );
-                result = retryResult;
-                break;
-              }
+              break;
             }
           }
         }
@@ -516,6 +503,7 @@ Options:
     --all              Run all tests
     --quiet            Only print failing test cases
     --jobs=<n>         Limit how many test partitions run in parallel
+    --retries=<n>      Retry failing tests up to n attempts
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
     --json=<file>      Write test results as JSON
@@ -779,6 +767,30 @@ function reportFinal(
   }
 
   return failed ? 1 : 0;
+}
+
+function shouldRetryTest(
+  expectation: boolean | TestExpectation,
+  retryCount: number,
+  result: TestResult,
+): boolean {
+  if (retryCount <= 1) {
+    return false;
+  }
+  const isFlaky = typeof expectation === "object" &&
+    expectation !== null &&
+    expectation.flaky === true;
+  return isFlaky || hasUnexpectedFailure(result, expectation);
+}
+
+function hasUnexpectedFailure(
+  result: TestResult,
+  expectation: boolean | TestExpectation,
+): boolean {
+  if (result.status !== 0 || result.harnessStatus === null) {
+    return expectation !== false;
+  }
+  return analyzeTestResult(result, expectation).failedCount > 0;
 }
 
 function analyzeTestResult(

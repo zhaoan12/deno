@@ -64,6 +64,8 @@ startup probe deadline with `DENO_WPT_SERVER_TIMEOUT_MS=<ms>`.
 - `--release` — Use `./target/release/deno` instead of `./target/debug/deno`
 - `--binary=<path>` — Use a specific Deno binary (skips `cargo build`)
 - `--quiet` — Only print failing test cases
+- `--jobs=<n>` — Limit how many test partitions run in parallel
+- `--retries=<n>` — Retry failing tests up to `n` attempts
 - `--json=<file>` — Write test results as JSON
 - `--wptreport=<file>` — Write results in the
   [wptreport](https://github.com/nicedoc/wpt-report) format

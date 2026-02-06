@@ -16,7 +16,7 @@ const parsedArgs = parseArgs(Deno.args, {
     "exit-zero",
     "verbose-server",
   ],
-  integer: ["jobs"],
+  integer: ["jobs", "retries"],
   string: ["json", "wptreport", "binary"],
 });
 
@@ -34,6 +34,7 @@ export const {
   ["exit-zero"]: exitZero,
   ["verbose-server"]: verboseServer,
   jobs,
+  retries,
   binary,
 } = parsedArgs;
 
@@ -50,6 +51,7 @@ export interface WptCommandOptions {
   quiet: boolean;
   rebuild: boolean;
   release: boolean;
+  retries?: number;
   rest: string[];
   verboseServer: boolean;
   wptreport?: string;
@@ -69,6 +71,7 @@ export function getCommandOptions(): WptCommandOptions {
     quiet,
     rebuild,
     release,
+    retries: typeof retries === "number" ? retries : undefined,
     rest,
     verboseServer,
     wptreport,
@@ -81,6 +84,14 @@ export function getParallelism(defaultValue = navigator.hardwareConcurrency) {
   }
   assert(jobs > 0, "--jobs must be greater than 0");
   return Math.max(1, Math.floor(jobs));
+}
+
+export function getRetryCount(defaultValue = 1) {
+  if (typeof retries !== "number") {
+    return defaultValue;
+  }
+  assert(retries > 0, "--retries must be greater than 0");
+  return Math.max(1, Math.floor(retries));
 }
 
 export function denoBinary() {
