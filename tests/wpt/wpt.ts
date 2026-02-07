@@ -331,6 +331,7 @@ Options:
       // ignore
     }
 
+    results.sort((a, b) => a.test.path.localeCompare(b.test.path));
     return results;
   });
   const endTime = Date.now();
@@ -529,6 +530,7 @@ Options:
       }
     }
 
+    results.sort((a, b) => a.test.path.localeCompare(b.test.path));
     return results;
   });
   const endTime = Date.now();
