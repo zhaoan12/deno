@@ -93,6 +93,9 @@ Running `wpt.ts run` immediately after `wpt.ts update` should always pass.
 The `update` command accepts the same flags as `run` (`--release`, `--binary`,
 `--quiet`, `--json`, `--no-ignore`, `--inspect-brk`).
 
+JSON output includes the file path, URL, manifest timeout class, normalized
+expectation metadata, harness result, stderr, and detailed subtest statuses.
+
 ## Listing tests
 
 Use the `list` command to inspect which files match a set of filters without

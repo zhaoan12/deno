@@ -336,21 +336,8 @@ Options:
   const endTime = Date.now();
 
   if (json) {
-    const minifiedResults = [];
-    for (const result of results) {
-      const minified = {
-        file: result.test.path,
-        name:
-          Object.fromEntries(result.test.options.script_metadata ?? []).title ??
-            null,
-        cases: result.result.cases.map((case_) => ({
-          name: case_.name,
-          passed: case_.passed,
-        })),
-      };
-      minifiedResults.push(minified);
-    }
-    await Deno.writeTextFile(json, JSON.stringify(minifiedResults) + "\n");
+    const jsonResults = results.map(createJsonReportEntry);
+    await Deno.writeTextFile(json, JSON.stringify(jsonResults) + "\n");
   }
 
   if (wptreport) {
@@ -547,7 +534,8 @@ Options:
   const endTime = Date.now();
 
   if (json) {
-    await Deno.writeTextFile(json, JSON.stringify(results) + "\n");
+    const jsonResults = results.map(createJsonReportEntry);
+    await Deno.writeTextFile(json, JSON.stringify(jsonResults) + "\n");
   }
 
   const newExpectations = newExpectation(results);
@@ -799,6 +787,45 @@ function hasUnexpectedFailure(
     return expectation !== false;
   }
   return analyzeTestResult(result, expectation).failedCount > 0;
+}
+
+function createJsonReportEntry({
+  test,
+  result,
+}: {
+  test: TestToRun;
+  result: TestResult;
+}) {
+  const metadata = Object.fromEntries(test.options.script_metadata ?? []);
+  return {
+    file: test.path,
+    url: test.url.href,
+    name: metadata.title ?? null,
+    timeout: test.options.timeout ?? "default",
+    expectation: normalizeExpectation(test.expectation),
+    status: result.status,
+    duration: result.duration,
+    stderr: result.stderr || null,
+    harness: result.harnessStatus,
+    cases: result.cases.map((case_) => ({
+      name: case_.name,
+      passed: case_.passed,
+      status: case_.status,
+      message: case_.message,
+      stack: case_.stack,
+    })),
+  };
+}
+
+function normalizeExpectation(expectation: boolean | TestExpectation) {
+  if (typeof expectation === "boolean") {
+    return expectation;
+  }
+  return {
+    ignore: expectation.ignore ?? false,
+    expectedFailures: expectation.expectedFailures ?? [],
+    flaky: expectation.flaky ?? false,
+  };
 }
 
 function analyzeTestResult(
