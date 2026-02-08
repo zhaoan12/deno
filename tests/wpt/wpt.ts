@@ -617,7 +617,7 @@ function newExpectation(
     if (failed.length == 0 && testSucceeded) {
       finalExpectation = true;
     } else if (failed.length > 0 && passed.length > 0 && testSucceeded) {
-      finalExpectation = { expectedFailures: failed };
+      finalExpectation = { expectedFailures: normalizeExpectedFailures(failed) };
     } else {
       finalExpectation = false;
     }
@@ -639,6 +639,10 @@ function newExpectation(
   }
 
   return currentExpectation;
+}
+
+function normalizeExpectedFailures(failed: string[]): string[] {
+  return [...new Set(failed)].sort((a, b) => a.localeCompare(b));
 }
 
 function insertExpectation(
