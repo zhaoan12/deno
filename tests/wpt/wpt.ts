@@ -278,6 +278,7 @@ Options:
     // ideally we would parallelize all tests, but we ran into some flakiness
     // on the CI, so here we're partitioning based on the start of the test path
     const partitionedTests = partitionTests(tests);
+    reportPartitions(partitionedTests);
 
     const iter = pooledMap(cores, partitionedTests, async (tests) => {
       for (const test of tests) {
@@ -1101,6 +1102,18 @@ function partitionTests(tests: TestToRun[]): TestToRun[][] {
     testsByKey[key].push(test);
   }
   return Object.values(testsByKey);
+}
+
+function reportPartitions(partitions: TestToRun[][]) {
+  const counts = partitions.map((tests) => tests.length);
+  const max = counts.length === 0 ? 0 : Math.max(...counts);
+  const min = counts.length === 0 ? 0 : Math.min(...counts);
+  const average = counts.length === 0
+    ? 0
+    : Math.round(counts.reduce((sum, count) => sum + count, 0) / counts.length);
+  console.log(
+    `Partitioned test run into ${partitions.length} groups (min ${min}, avg ${average}, max ${max}).`,
+  );
 }
 
 function formatDuration(duration: number): string {
