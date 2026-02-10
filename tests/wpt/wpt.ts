@@ -1009,22 +1009,7 @@ function discoverTestsToRun(
           if (!url.pathname.endsWith(".html")) {
             continue;
           }
-          // These tests require an HTTP2 compatible server.
-          if (url.pathname.includes(".h2.")) {
-            continue;
-          }
-          // Streaming fetch requests need a server that supports chunked
-          // encoding, which the WPT test server does not. Unfortunately this
-          // also disables some useful fetch tests.
-          if (url.pathname.includes("request-upload")) {
-            continue;
-          }
-          // We don't support shadow realm, service worker, or shared worker.
-          if (
-            url.pathname.includes("shadowrealm") ||
-            url.pathname.includes("serviceworker") ||
-            url.pathname.includes("sharedworker")
-          ) {
+          if (getDiscoverySkipReason(url.pathname) != null) {
             continue;
           }
           const finalPath = url.pathname + url.search;
@@ -1084,6 +1069,27 @@ function discoverTestsToRun(
   walk(manifestFolder, expectation, "");
 
   return testsToRun;
+}
+
+function getDiscoverySkipReason(pathname: string): string | null {
+  // These tests require an HTTP2 compatible server.
+  if (pathname.includes(".h2.")) {
+    return "requires HTTP/2 support";
+  }
+  // Streaming fetch requests need a server that supports chunked encoding,
+  // which the WPT test server does not.
+  if (pathname.includes("request-upload")) {
+    return "requires chunked upload support";
+  }
+  // We don't support shadow realm, service worker, or shared worker.
+  if (
+    pathname.includes("shadowrealm") ||
+    pathname.includes("serviceworker") ||
+    pathname.includes("sharedworker")
+  ) {
+    return "requires unsupported worker or shadow realm support";
+  }
+  return null;
 }
 
 function partitionTests(tests: TestToRun[]): TestToRun[][] {
