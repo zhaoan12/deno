@@ -10,6 +10,7 @@ use std::sync::atomic::AtomicU32;
 use parking_lot::Mutex;
 
 use super::BrokerResponse;
+use super::utc_now_rfc3339;
 use crate::ipc_pipe::IpcPipe;
 
 // TODO(bartlomieju): currently randomly selected exit code, it should
@@ -81,8 +82,7 @@ impl PermissionBroker {
       v: 1,
       pid: *PID.get().unwrap(),
       id,
-      #[allow(clippy::disallowed_methods, reason = "TODO: use sys_traits")]
-      datetime: chrono::Utc::now().to_rfc3339(),
+      datetime: utc_now_rfc3339(false),
       permission,
       value: stringified_value,
     };

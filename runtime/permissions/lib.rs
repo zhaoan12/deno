@@ -85,6 +85,18 @@ fn format_permission_error(name: &'static str) -> String {
   }
 }
 
+pub(crate) fn utc_now_rfc3339(seconds_only: bool) -> String {
+  #[allow(
+    clippy::disallowed_methods,
+    reason = "TODO: support passing in a sys here"
+  )]
+  if seconds_only {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+  } else {
+    chrono::Utc::now().to_rfc3339()
+  }
+}
+
 fn write_audit<T>(flag_name: &str, value: T)
 where
   T: Serialize,
@@ -104,13 +116,7 @@ where
       let _ = map.insert("v".into(), serde_json::Value::Number(1.into()));
       let _ = map.insert(
         "datetime".into(),
-        #[allow(
-          clippy::disallowed_methods,
-          reason = "TODO: support passing in a sys here"
-        )]
-        serde_json::Value::String(
-          chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-        ),
+        serde_json::Value::String(utc_now_rfc3339(true)),
       );
       let _ = map.insert(
         "permission".into(),
