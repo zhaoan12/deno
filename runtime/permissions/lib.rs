@@ -97,6 +97,31 @@ pub(crate) fn utc_now_rfc3339(seconds_only: bool) -> String {
   }
 }
 
+fn build_audit_record<T>(
+  flag_name: &str,
+  value: &T,
+  stack: Option<&[String]>,
+) -> serde_json::Map<String, serde_json::Value>
+where
+  T: Serialize,
+{
+  let mut map = serde_json::Map::with_capacity(6);
+  let _ = map.insert("v".into(), serde_json::Value::Number(1.into()));
+  let _ = map.insert(
+    "datetime".into(),
+    serde_json::Value::String(utc_now_rfc3339(true)),
+  );
+  let _ = map.insert(
+    "permission".into(),
+    serde_json::to_value(flag_name).unwrap(),
+  );
+  let _ = map.insert("value".into(), serde_json::to_value(value).unwrap());
+  if let Some(stack) = stack {
+    let _ = map.insert("stack".into(), serde_json::to_value(stack).unwrap());
+  }
+  map
+}
+
 fn write_audit<T>(flag_name: &str, value: T)
 where
   T: Serialize,
@@ -111,23 +136,7 @@ where
   match sink {
     AuditSink::File(file) => {
       let mut file = file.lock();
-
-      let mut map = serde_json::Map::with_capacity(6);
-      let _ = map.insert("v".into(), serde_json::Value::Number(1.into()));
-      let _ = map.insert(
-        "datetime".into(),
-        serde_json::Value::String(utc_now_rfc3339(true)),
-      );
-      let _ = map.insert(
-        "permission".into(),
-        serde_json::to_value(flag_name).unwrap(),
-      );
-      let _ = map.insert("value".into(), serde_json::to_value(&value).unwrap());
-
-      if let Some(ref stack) = stack {
-        let _ =
-          map.insert("stack".into(), serde_json::to_value(stack).unwrap());
-      }
+      let map = build_audit_record(flag_name, &value, stack.as_deref());
 
       let _ = file.write_all(
         format!("{}\n", serde_json::to_string(&map).unwrap()).as_bytes(),
@@ -5608,6 +5617,24 @@ mod tests {
         "expected {host_str}:{port} to pass"
       );
     }
+  }
+
+  #[test]
+  fn test_build_audit_record_includes_expected_fields() {
+    let record = build_audit_record(
+      "read",
+      &"/tmp/data.txt",
+      Some(&["frame one".to_string(), "frame two".to_string()]),
+    );
+
+    assert_eq!(record.get("v"), Some(&json!(1)));
+    assert_eq!(record.get("permission"), Some(&json!("read")));
+    assert_eq!(record.get("value"), Some(&json!("/tmp/data.txt")));
+    assert_eq!(
+      record.get("stack"),
+      Some(&json!(["frame one", "frame two"]))
+    );
+    assert!(record.contains_key("datetime"));
   }
 
   #[test]
