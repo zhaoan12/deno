@@ -101,18 +101,29 @@ impl PermissionBroker {
     // Read response using line reader
     let mut reader = BufReader::new(&mut *stream);
     let mut response_line = String::new();
-    reader.read_line(&mut response_line)?;
+    let bytes_read = reader.read_line(&mut response_line)?;
+    if bytes_read == 0 {
+      return Err(std::io::Error::new(
+        std::io::ErrorKind::UnexpectedEof,
+        "Permission broker closed the pipe before sending a response",
+      ));
+    }
 
     let response =
       serde_json::from_str::<PermissionBrokerResponse>(response_line.trim())
-        .map_err(std::io::Error::other)?;
+        .map_err(|err| {
+          std::io::Error::other(format!(
+            "Permission broker returned invalid JSON response: {err}",
+          ))
+        })?;
 
     log::trace!("<- broker resp  {:?}", response);
 
     if response.id != id {
-      return Err(std::io::Error::other(
-        "Permission broker response ID mismatch",
-      ));
+      return Err(std::io::Error::other(format!(
+        "Permission broker response ID mismatch (expected {id}, got {})",
+        response.id
+      )));
     }
 
     let prompt_response = match response.result {
