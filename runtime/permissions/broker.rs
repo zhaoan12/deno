@@ -41,10 +41,17 @@ struct PermissionBrokerRequest<'a> {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum PermissionBrokerDecision {
+  Allow,
+  Deny,
+}
+
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PermissionBrokerResponse {
   id: u32,
-  result: String,
+  result: PermissionBrokerDecision,
   reason: Option<String>,
 }
 
@@ -108,16 +115,11 @@ impl PermissionBroker {
       ));
     }
 
-    let prompt_response = match response.result.as_str() {
-      "allow" => BrokerResponse::Allow,
-      "deny" => BrokerResponse::Deny {
+    let prompt_response = match response.result {
+      PermissionBrokerDecision::Allow => BrokerResponse::Allow,
+      PermissionBrokerDecision::Deny => BrokerResponse::Deny {
         message: response.reason,
       },
-      _ => {
-        return Err(std::io::Error::other(
-          "Permission broker unknown result variant",
-        ));
-      }
     };
 
     Ok(prompt_response)
