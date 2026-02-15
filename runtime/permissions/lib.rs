@@ -483,11 +483,7 @@ impl PermissionState {
   }
 
   fn fmt_access(name: &'static str, info: Option<&str>) -> String {
-    format!(
-      "{} access{}",
-      name,
-      info.map(|info| format!(" to {info}")).unwrap_or_default(),
-    )
+    format!("{} access{}", name, format_access_target(info))
   }
 
   fn permission_denied_error(
@@ -570,15 +566,7 @@ impl PermissionState {
       }
       PermissionState::Prompt if prompt => {
         let info = info();
-        let msg = StringBuilder::<String>::build(|builder| {
-          builder.append(name);
-          builder.append(" access");
-          if let Some(info) = &info {
-            builder.append(" to ");
-            builder.append(info);
-          }
-        })
-        .unwrap();
+        let msg = format!("{} access{}", name, format_access_target(info.as_deref()));
         let (result, is_allow_all) = Self::prompt(PromptOptions {
           name,
           msg: &msg,
@@ -594,6 +582,10 @@ impl PermissionState {
       }
     }
   }
+}
+
+fn format_access_target(info: Option<&str>) -> String {
+  info.map(|info| format!(" to {info}")).unwrap_or_default()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -5635,6 +5627,12 @@ mod tests {
       Some(&json!(["frame one", "frame two"]))
     );
     assert!(record.contains_key("datetime"));
+  }
+
+  #[test]
+  fn test_format_access_target() {
+    assert_eq!(format_access_target(None), "");
+    assert_eq!(format_access_target(Some("/tmp/file.txt")), " to /tmp/file.txt");
   }
 
   #[test]
