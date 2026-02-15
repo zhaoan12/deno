@@ -491,10 +491,19 @@ impl PermissionState {
     info: Option<&str>,
     state: PermissionState,
   ) -> PermissionDeniedError {
+    Self::permission_denied_error_with_message(name, info, state, None)
+  }
+
+  fn permission_denied_error_with_message(
+    name: &'static str,
+    info: Option<&str>,
+    state: PermissionState,
+    custom_message: Option<String>,
+  ) -> PermissionDeniedError {
     PermissionDeniedError {
       access: Self::fmt_access(name, info),
       name,
-      custom_message: None,
+      custom_message,
       state,
     }
   }
@@ -546,12 +555,12 @@ impl PermissionState {
         }
         BrokerResponse::Deny { message } => {
           return (
-            Err(PermissionDeniedError {
-              access: Self::fmt_access(name, info().as_deref()),
+            Err(Self::permission_denied_error_with_message(
               name,
-              custom_message: message,
-              state: PermissionState::Denied,
-            }),
+              info().as_deref(),
+              PermissionState::Denied,
+              message,
+            )),
             false,
             false,
           );
