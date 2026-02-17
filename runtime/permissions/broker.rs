@@ -94,7 +94,7 @@ impl PermissionBroker {
       value: stringified_value,
     };
 
-    let msg = format!("{}\n", serde_json::to_string(&request).unwrap());
+    let msg = serialize_broker_request(&request);
     log::trace!("-> broker req   {}", msg);
     stream.write_all(msg.as_bytes())?;
 
@@ -151,4 +151,41 @@ pub fn maybe_check_with_broker(
     }
   };
   Some(resp)
+}
+
+fn serialize_broker_request(request: &PermissionBrokerRequest<'_>) -> String {
+  format!("{}\n", serde_json::to_string(request).unwrap())
+}
+
+#[cfg(test)]
+mod tests {
+  use serde_json::json;
+
+  use super::*;
+
+  #[test]
+  fn test_serialize_broker_request() {
+    let request = PermissionBrokerRequest {
+      v: 1,
+      pid: 42,
+      id: 7,
+      datetime: "2026-02-17T10:00:00Z".to_string(),
+      permission: "read",
+      value: Some("/tmp/file.txt".to_string()),
+    };
+
+    let serialized = serialize_broker_request(&request);
+    assert!(serialized.ends_with('\n'));
+    assert_eq!(
+      serde_json::from_str::<serde_json::Value>(serialized.trim()).unwrap(),
+      json!({
+        "v": 1,
+        "pid": 42,
+        "id": 7,
+        "datetime": "2026-02-17T10:00:00Z",
+        "permission": "read",
+        "value": "/tmp/file.txt"
+      })
+    );
+  }
 }
