@@ -5645,6 +5645,20 @@ mod tests {
   }
 
   #[test]
+  fn test_permission_denied_error_with_custom_message() {
+    let err = PermissionState::permission_denied_error_with_message(
+      "read",
+      Some("/tmp/file.txt"),
+      PermissionState::Denied,
+      Some("denied by broker policy".to_string()),
+    );
+
+    assert_eq!(err.access, "read access to /tmp/file.txt");
+    assert_eq!(err.custom_message.as_deref(), Some("denied by broker policy"));
+    assert_eq!(err.state, PermissionState::Denied);
+  }
+
+  #[test]
   fn test_check_net_no_flag() {
     set_prompter(Box::new(TestPrompter));
     let parser = TestPermissionDescriptorParser;
