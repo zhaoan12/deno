@@ -23,6 +23,7 @@ import {
   EXPECTATIONS_DIR,
   generateRunInfo,
   getCommandOptions,
+  getFileTimeoutMs,
   getExpectation,
   getExpectFailForCase,
   getManifest,
@@ -251,6 +252,7 @@ Options:
     --jobs=<n>         Limit how many test partitions run in parallel
     --retries=<n>      Retry failing tests up to n attempts
     --timeout-scale=n  Multiply per-test timeouts by n
+    --file-timeout-ms  Override the full-file timeout budget in milliseconds
     --fail-fast        Stop after the first unexpected failure
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
@@ -294,6 +296,7 @@ Options:
           inParallel ? () => {} : createReportTestCase(test.expectation),
           inspectBrk,
           getTestTimeout(test),
+          getFileTimeoutMs(),
         );
         if (shouldRetryTest(test.expectation, retryCount, result)) {
           for (let attempt = 2; attempt <= retryCount; attempt++) {
@@ -308,6 +311,7 @@ Options:
               () => {},
               inspectBrk,
               getTestTimeout(test),
+              getFileTimeoutMs(),
             );
             result = retryResult;
             if (!hasUnexpectedFailure(retryResult, test.expectation)) {
@@ -501,6 +505,7 @@ Options:
     --jobs=<n>         Limit how many test partitions run in parallel
     --retries=<n>      Retry failing tests up to n attempts
     --timeout-scale=n  Multiply per-test timeouts by n
+    --file-timeout-ms  Override the full-file timeout budget in milliseconds
     --fail-fast        Stop after the first unexpected failure
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
@@ -527,6 +532,7 @@ Options:
         json ? () => {} : createReportTestCase(test.expectation),
         inspectBrk,
         { long: 60_000, default: 10_000 },
+        getFileTimeoutMs(),
       );
       results.push({ test, result });
       reportVariation(result, test.expectation);

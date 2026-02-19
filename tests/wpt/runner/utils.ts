@@ -18,7 +18,7 @@ const parsedArgs = parseArgs(Deno.args, {
     "verbose-server",
   ],
   integer: ["jobs", "retries"],
-  string: ["json", "wptreport", "binary", "timeout-scale"],
+  string: ["json", "wptreport", "binary", "timeout-scale", "file-timeout-ms"],
 });
 
 export const {
@@ -36,6 +36,7 @@ export const {
   ["fail-fast"]: failFast,
   ["verbose-server"]: verboseServer,
   ["timeout-scale"]: timeoutScale,
+  ["file-timeout-ms"]: fileTimeoutMs,
   jobs,
   retries,
   binary,
@@ -47,6 +48,7 @@ export interface WptCommandOptions {
   binary?: string;
   exitZero: boolean;
   failFast: boolean;
+  fileTimeoutMs?: number;
   hasFilters: boolean;
   inspectBrk: boolean;
   json?: string;
@@ -69,6 +71,7 @@ export function getCommandOptions(): WptCommandOptions {
     binary,
     exitZero,
     failFast,
+    fileTimeoutMs: parsePositiveNumberFlag(fileTimeoutMs),
     hasFilters: rest.length > 0,
     inspectBrk,
     json,
@@ -103,6 +106,10 @@ export function getRetryCount(defaultValue = 1) {
 
 export function getTimeoutScale(defaultValue = 1): number {
   return parsePositiveNumberFlag(timeoutScale) ?? defaultValue;
+}
+
+export function getFileTimeoutMs(defaultValue = 2 * 60_000): number {
+  return parsePositiveNumberFlag(fileTimeoutMs) ?? defaultValue;
 }
 
 function parsePositiveNumberFlag(value: unknown): number | undefined {
