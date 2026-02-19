@@ -28,6 +28,7 @@ import {
   getManifest,
   getParallelism,
   getRetryCount,
+  getTimeoutScale,
   inspectBrk,
   json,
   ManifestFolder,
@@ -219,15 +220,16 @@ interface TestToRun {
 }
 
 function getTestTimeout(test: TestToRun) {
+  const scale = getTimeoutScale();
   if (Deno.env.get("CI")) {
     // Don't give expected failures the full time
     if (test.expectation === false) {
-      return { long: 60_000, default: 10_000 };
+      return { long: 60_000 * scale, default: 10_000 * scale };
     }
-    return { long: 4 * 60_000, default: 4 * 60_000 };
+    return { long: 4 * 60_000 * scale, default: 4 * 60_000 * scale };
   }
 
-  return { long: 60_000, default: 10_000 };
+  return { long: 60_000 * scale, default: 10_000 * scale };
 }
 
 async function run() {
@@ -248,6 +250,7 @@ Options:
     --quiet            Only print failing test cases
     --jobs=<n>         Limit how many test partitions run in parallel
     --retries=<n>      Retry failing tests up to n attempts
+    --timeout-scale=n  Multiply per-test timeouts by n
     --fail-fast        Stop after the first unexpected failure
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary
@@ -497,6 +500,7 @@ Options:
     --quiet            Only print failing test cases
     --jobs=<n>         Limit how many test partitions run in parallel
     --retries=<n>      Retry failing tests up to n attempts
+    --timeout-scale=n  Multiply per-test timeouts by n
     --fail-fast        Stop after the first unexpected failure
     --release          Use the release build of Deno
     --binary=<path>    Use a specific Deno binary

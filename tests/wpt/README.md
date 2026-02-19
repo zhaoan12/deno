@@ -66,6 +66,7 @@ startup probe deadline with `DENO_WPT_SERVER_TIMEOUT_MS=<ms>`.
 - `--quiet` — Only print failing test cases
 - `--jobs=<n>` — Limit how many test partitions run in parallel
 - `--retries=<n>` — Retry failing tests up to `n` attempts
+- `--timeout-scale=<n>` — Multiply per-test timeouts by `n`
 - `--fail-fast` — Stop after the first unexpected failure
 - `--json=<file>` — Write test results as JSON
 - `--wptreport=<file>` — Write results in the

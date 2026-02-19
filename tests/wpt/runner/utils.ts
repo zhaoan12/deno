@@ -18,7 +18,7 @@ const parsedArgs = parseArgs(Deno.args, {
     "verbose-server",
   ],
   integer: ["jobs", "retries"],
-  string: ["json", "wptreport", "binary"],
+  string: ["json", "wptreport", "binary", "timeout-scale"],
 });
 
 export const {
@@ -35,6 +35,7 @@ export const {
   ["exit-zero"]: exitZero,
   ["fail-fast"]: failFast,
   ["verbose-server"]: verboseServer,
+  ["timeout-scale"]: timeoutScale,
   jobs,
   retries,
   binary,
@@ -56,6 +57,7 @@ export interface WptCommandOptions {
   release: boolean;
   retries?: number;
   rest: string[];
+  timeoutScale?: number;
   verboseServer: boolean;
   wptreport?: string;
 }
@@ -77,6 +79,7 @@ export function getCommandOptions(): WptCommandOptions {
     release,
     retries: typeof retries === "number" ? retries : undefined,
     rest,
+    timeoutScale: parsePositiveNumberFlag(timeoutScale),
     verboseServer,
     wptreport,
   };
@@ -96,6 +99,22 @@ export function getRetryCount(defaultValue = 1) {
   }
   assert(retries > 0, "--retries must be greater than 0");
   return Math.max(1, Math.floor(retries));
+}
+
+export function getTimeoutScale(defaultValue = 1): number {
+  return parsePositiveNumberFlag(timeoutScale) ?? defaultValue;
+}
+
+function parsePositiveNumberFlag(value: unknown): number | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  assert(
+    Number.isFinite(parsed) && parsed > 0,
+    "numeric WPT flags must be greater than 0",
+  );
+  return parsed;
 }
 
 export function denoBinary() {
