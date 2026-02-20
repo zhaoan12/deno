@@ -902,18 +902,18 @@ function reportVariation(
   result: TestResult,
   expectation: boolean | TestExpectation,
 ) {
-  if (result.status !== 0 || result.harnessStatus === null) {
+  const outcome = getFileOutcome(result, expectation);
+  if (outcome.isFileLevelFailure) {
     if (result.stderr) {
       console.log(`test stderr:\n${result.stderr}\n`);
     }
 
-    const expectFail = expectation === false;
     const failReason = result.status !== 0
       ? "runner failed during test"
       : "the event loop run out of tasks during the test";
     console.log(
       `\nfile result: ${
-        expectFail ? yellow("failed (expected)") : red("failed")
+        outcome.expectedFileFailure ? yellow("failed (expected)") : red("failed")
       }. ${failReason} (${formatDuration(result.duration)})\n`,
     );
     return;
