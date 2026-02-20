@@ -381,19 +381,7 @@ async function generateWptReport(
   const runInfo = await generateRunInfo();
   const reportResults = [];
   for (const { test, result } of results) {
-    const status = result.status !== 0
-      ? "CRASH"
-      : result.harnessStatus?.status === 0
-      ? "OK"
-      : "ERROR";
-    let message;
-    if (result.harnessStatus === null && result.status === 0) {
-      // If the only error is the event loop running out of tasks, using stderr
-      // as the message won't help.
-      message = "Event loop run out of tasks.";
-    } else {
-      message = result.harnessStatus?.message ?? (result.stderr.trim() || null);
-    }
+    const outcome = getFileOutcome(result, test.expectation);
     const reportResult = {
       test: test.url.pathname + test.url.search + test.url.hash,
       subtests: result.cases.map((case_) => {
@@ -418,10 +406,10 @@ async function generateWptReport(
           known_intermittent: [],
         };
       }),
-      status,
-      message: escapeLoneSurrogates(message),
+      status: outcome.wptStatus,
+      message: escapeLoneSurrogates(outcome.message),
       duration: result.duration,
-      expected: status === "OK" ? undefined : "OK",
+      expected: outcome.wptStatus === "OK" ? undefined : "OK",
       "known_intermittent": [],
     };
     reportResults.push(reportResult);
@@ -707,8 +695,9 @@ function reportFinal(
       result,
       test.expectation,
     );
-    if (result.status !== 0 || result.harnessStatus === null) {
-      if (test.expectation === false) {
+    const outcome = getFileOutcome(result, test.expectation);
+    if (outcome.isFileLevelFailure) {
+      if (outcome.expectedFileFailure) {
         finalExpectedFailedAndFailedCount += 1;
       } else {
         finalFailedCount += 1;
@@ -800,10 +789,8 @@ function hasUnexpectedFailure(
   result: TestResult,
   expectation: boolean | TestExpectation,
 ): boolean {
-  if (result.status !== 0 || result.harnessStatus === null) {
-    return expectation !== false;
-  }
-  return analyzeTestResult(result, expectation).failedCount > 0;
+  const outcome = getFileOutcome(result, expectation);
+  return outcome.hasUnexpectedFailure;
 }
 
 function createJsonReportEntry({
@@ -842,6 +829,35 @@ function normalizeExpectation(expectation: boolean | TestExpectation) {
     ignore: expectation.ignore ?? false,
     expectedFailures: expectation.expectedFailures ?? [],
     flaky: expectation.flaky ?? false,
+  };
+}
+
+function getFileOutcome(
+  result: TestResult,
+  expectation: boolean | TestExpectation,
+) {
+  const isFileLevelFailure = result.status !== 0 || result.harnessStatus === null;
+  const expectedFileFailure = expectation === false;
+  let message: string | null;
+  if (result.harnessStatus === null && result.status === 0) {
+    message = "Event loop run out of tasks.";
+  } else {
+    message = result.harnessStatus?.message ?? (result.stderr.trim() || null);
+  }
+  const wptStatus = result.status !== 0
+    ? "CRASH"
+    : result.harnessStatus?.status === 0
+    ? "OK"
+    : "ERROR";
+  const hasUnexpectedFailure = isFileLevelFailure
+    ? !expectedFileFailure
+    : analyzeTestResult(result, expectation).failedCount > 0;
+  return {
+    expectedFileFailure,
+    hasUnexpectedFailure,
+    isFileLevelFailure,
+    message,
+    wptStatus,
   };
 }
 
