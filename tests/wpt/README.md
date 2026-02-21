@@ -114,6 +114,10 @@ running them:
 ./tests/wpt/wpt.ts list --all
 ```
 
+Use `./tests/wpt/wpt.ts list-skipped` to inspect manifest tests that are being
+filtered out by hard-coded runner skip rules such as HTTP/2-only coverage or
+unsupported worker variants.
+
 ## Expectation file format
 
 The expectations directory (`./tests/wpt/runner/expectations/`) contains one

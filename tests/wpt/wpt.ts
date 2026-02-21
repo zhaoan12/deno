@@ -122,6 +122,10 @@ switch (command) {
     listTests();
     break;
 
+  case "list-skipped":
+    listSkippedTests();
+    break;
+
   default:
     console.log(`Possible commands:
 
@@ -136,6 +140,9 @@ switch (command) {
 
     list
       Print the test files that match the current filters.
+
+    list-skipped
+      Print manifest test files excluded by built-in runner skip rules.
 
 More details at https://docs.deno.com/runtime/manual/references/contributing/web_platform_tests
 
@@ -571,6 +578,41 @@ Either specify test filters or use --all to list the entire suite:
     console.log(test.path);
   }
   console.log(`\nListed ${tests.length} test files.`);
+}
+
+function listSkippedTests() {
+  const skippedTests: { path: string; reason: string }[] = [];
+
+  function walk(parentFolder: ManifestFolder, prefix: string) {
+    for (const [key, entry] of Object.entries(parentFolder)) {
+      if (Array.isArray(entry)) {
+        for (
+          const [path] of entry.slice(1) as ManifestTestVariation[]
+        ) {
+          if (!key.endsWith(".html") && !key.endsWith(".js")) continue;
+          const testHtmlPath = path ?? `${prefix}/${key}`;
+          const url = new URL(testHtmlPath, "http://web-platform.test:8000");
+          if (!url.pathname.endsWith(".html")) {
+            continue;
+          }
+          const reason = getDiscoverySkipReason(url.pathname);
+          if (reason != null) {
+            skippedTests.push({ path: url.pathname + url.search, reason });
+          }
+        }
+      } else {
+        walk(entry, `${prefix}/${key}`);
+      }
+    }
+  }
+
+  walk(getManifest().items.testharness, "");
+  skippedTests.sort((a, b) => a.path.localeCompare(b.path));
+
+  for (const { path, reason } of skippedTests) {
+    console.log(`${path}  # ${reason}`);
+  }
+  console.log(`\nListed ${skippedTests.length} skipped test files.`);
 }
 
 function newExpectation(
