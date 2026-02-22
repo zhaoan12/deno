@@ -524,31 +524,12 @@ function listTests() {
 
 function listSkippedTests() {
   const skippedTests: { path: string; reason: string }[] = [];
-
-  function walk(parentFolder: ManifestFolder, prefix: string) {
-    for (const [key, entry] of Object.entries(parentFolder)) {
-      if (Array.isArray(entry)) {
-        for (
-          const [path] of entry.slice(1) as ManifestTestVariation[]
-        ) {
-          if (!key.endsWith(".html") && !key.endsWith(".js")) continue;
-          const testHtmlPath = path ?? `${prefix}/${key}`;
-          const url = new URL(testHtmlPath, "http://web-platform.test:8000");
-          if (!url.pathname.endsWith(".html")) {
-            continue;
-          }
-          const reason = getDiscoverySkipReason(url.pathname);
-          if (reason != null) {
-            skippedTests.push({ path: url.pathname + url.search, reason });
-          }
-        }
-      } else {
-        walk(entry, `${prefix}/${key}`);
-      }
+  forEachManifestVariation(getManifest().items.testharness, "", (url) => {
+    const reason = getDiscoverySkipReason(url.pathname);
+    if (reason != null) {
+      skippedTests.push({ path: url.pathname + url.search, reason });
     }
-  }
-
-  walk(getManifest().items.testharness, "");
+  });
   skippedTests.sort((a, b) => a.path.localeCompare(b.path));
 
   for (const { path, reason } of skippedTests) {
@@ -1062,93 +1043,92 @@ function discoverTestsToRun(
   filter: TestFilter,
   expectation: Expectation | TestExpectation | boolean = getExpectation(),
 ): TestToRun[] {
-  const manifestFolder = getManifest().items.testharness;
-
   const testsToRun: TestToRun[] = [];
-
-  function walk(
-    parentFolder: ManifestFolder,
-    parentExpectation: Expectation | TestExpectation | boolean,
-    prefix: string,
-  ) {
-    for (const [key, entry] of Object.entries(parentFolder)) {
-      if (Array.isArray(entry)) {
-        for (
-          const [path, options] of entry.slice(
-            1,
-          ) as ManifestTestVariation[]
-        ) {
-          // Test keys ending with ".html" include their own html boilerplate.
-          // Test keys ending with ".js" will have the necessary boilerplate generated and
-          // the manifest path will contain the full path to the generated html test file.
-          // See: https://web-platform-tests.org/writing-tests/testharness.html
-          if (!key.endsWith(".html") && !key.endsWith(".js")) continue;
-
-          const testHtmlPath = path ?? `${prefix}/${key}`;
-          const url = new URL(testHtmlPath, "http://web-platform.test:8000");
-          if (!url.pathname.endsWith(".html")) {
-            continue;
-          }
-          if (getDiscoverySkipReason(url.pathname) != null) {
-            continue;
-          }
-          const finalPath = url.pathname + url.search;
-
-          const split = finalPath.split("/");
-          const finalKey = split[split.length - 1];
-
-          const expectation = isLeafExpectation(parentExpectation)
-            ? parentExpectation
-            : (parentExpectation as Expectation)[finalKey];
-
-          if (expectation === undefined) continue;
-
-          if (typeof expectation === "object") {
-            if (
-              typeof (expectation as TestExpectation).ignore !== "undefined"
-            ) {
-              assert(
-                typeof (expectation as TestExpectation).ignore === "boolean",
-                "test entry's `ignore` key must be a boolean",
-              );
-              if (
-                (expectation as TestExpectation).ignore === true && !noIgnore
-              ) {
-                continue;
-              }
-            }
-          }
-
-          if (!noIgnore) {
-            assert(
-              isLeafExpectation(expectation),
-              "test entry must not have a folder expectation",
-            );
-          }
-
-          if (!filter.matches(finalPath)) continue;
-
-          testsToRun.push({
-            path: finalPath,
-            url,
-            options,
-            expectation,
-          });
-        }
-      } else {
-        const expectation = isLeafExpectation(parentExpectation)
-          ? parentExpectation
-          : (parentExpectation as Expectation)[key];
-
-        if (expectation === undefined) continue;
-
-        walk(entry, expectation, `${prefix}/${key}`);
+  forEachManifestVariation(
+    getManifest().items.testharness,
+    "",
+    (url, options, _key, parentExpectation) => {
+      if (getDiscoverySkipReason(url.pathname) != null) {
+        return;
       }
-    }
-  }
-  walk(manifestFolder, expectation, "");
+      const finalPath = url.pathname + url.search;
+      const split = finalPath.split("/");
+      const finalKey = split[split.length - 1];
+      const expectation = isLeafExpectation(parentExpectation)
+        ? parentExpectation
+        : (parentExpectation as Expectation)[finalKey];
+
+      if (expectation === undefined) return;
+
+      if (typeof expectation === "object") {
+        if (typeof (expectation as TestExpectation).ignore !== "undefined") {
+          assert(
+            typeof (expectation as TestExpectation).ignore === "boolean",
+            "test entry's `ignore` key must be a boolean",
+          );
+          if ((expectation as TestExpectation).ignore === true && !noIgnore) {
+            return;
+          }
+        }
+      }
+
+      if (!noIgnore) {
+        assert(
+          isLeafExpectation(expectation),
+          "test entry must not have a folder expectation",
+        );
+      }
+
+      if (!filter.matches(finalPath)) return;
+
+      testsToRun.push({
+        path: finalPath,
+        url,
+        options,
+        expectation,
+      });
+    },
+    expectation,
+  );
 
   return testsToRun;
+}
+
+function forEachManifestVariation(
+  parentFolder: ManifestFolder,
+  prefix: string,
+  callback: (
+    url: URL,
+    options: ManifestTestOptions,
+    key: string,
+    parentExpectation: Expectation | TestExpectation | boolean,
+  ) => void,
+  parentExpectation: Expectation | TestExpectation | boolean = true,
+) {
+  for (const [key, entry] of Object.entries(parentFolder)) {
+    if (Array.isArray(entry)) {
+      for (const [path, options] of entry.slice(1) as ManifestTestVariation[]) {
+        // Test keys ending with ".html" include their own html boilerplate.
+        // Test keys ending with ".js" will have the necessary boilerplate generated and
+        // the manifest path will contain the full path to the generated html test file.
+        // See: https://web-platform-tests.org/writing-tests/testharness.html
+        if (!key.endsWith(".html") && !key.endsWith(".js")) continue;
+
+        const testHtmlPath = path ?? `${prefix}/${key}`;
+        const url = new URL(testHtmlPath, "http://web-platform.test:8000");
+        if (!url.pathname.endsWith(".html")) {
+          continue;
+        }
+        callback(url, options, key, parentExpectation);
+      }
+    } else {
+      const expectation = isLeafExpectation(parentExpectation)
+        ? parentExpectation
+        : (parentExpectation as Expectation)[key];
+      if (expectation === undefined) continue;
+      forEachManifestVariation(entry, `${prefix}/${key}`, callback, expectation);
+    }
+  }
 }
 
 function getDiscoverySkipReason(pathname: string): string | null {
