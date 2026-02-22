@@ -243,33 +243,7 @@ function getTestTimeout(test: TestToRun) {
 async function run() {
   assert(Array.isArray(options.rest), "filter must be array");
   if (!options.hasFilters && !options.all) {
-    console.log(`Usage: wpt.ts run [OPTIONS] [-- <filters...>]
-
-Run WPT tests and check results against expectations.
-
-Either specify test filters or use --all to run the entire suite:
-
-    wpt.ts run -- fetch/api/basic
-    wpt.ts run -- /WebCryptoAPI/getRandomValues.any.html
-    wpt.ts run --all
-
-Options:
-    --all              Run all tests
-    --quiet            Only print failing test cases
-    --jobs=<n>         Limit how many test partitions run in parallel
-    --retries=<n>      Retry failing tests up to n attempts
-    --timeout-scale=n  Multiply per-test timeouts by n
-    --file-timeout-ms  Override the full-file timeout budget in milliseconds
-    --fail-fast        Stop after the first unexpected failure
-    --release          Use the release build of Deno
-    --binary=<path>    Use a specific Deno binary
-    --json=<file>      Write test results as JSON
-    --wptreport=<file> Write results in wptreport format
-    --inspect-brk      Attach V8 inspector to each test
-    --verbose-server   Stream WPT server stdout/stderr while tests run
-    --no-ignore        Include tests marked with {"ignore": true}
-    --exit-zero        Exit with code 0 even on failures
-`);
+    console.log(getRunUsage());
     Deno.exit(1);
   }
   const startTime = Date.now();
@@ -485,30 +459,7 @@ function assertAllExpectationsHaveTests(
 async function update() {
   assert(Array.isArray(options.rest), "filter must be array");
   if (!options.hasFilters && !options.all) {
-    console.log(`Usage: wpt.ts update [OPTIONS] [-- <filters...>]
-
-Run WPT tests and update expectations to match current results.
-
-Either specify test filters or use --all to update the entire suite:
-
-    wpt.ts update -- fetch/api/basic
-    wpt.ts update --all
-
-Options:
-    --all              Run all tests
-    --quiet            Only print failing test cases
-    --jobs=<n>         Limit how many test partitions run in parallel
-    --retries=<n>      Retry failing tests up to n attempts
-    --timeout-scale=n  Multiply per-test timeouts by n
-    --file-timeout-ms  Override the full-file timeout budget in milliseconds
-    --fail-fast        Stop after the first unexpected failure
-    --release          Use the release build of Deno
-    --binary=<path>    Use a specific Deno binary
-    --json=<file>      Write test results as JSON
-    --inspect-brk      Attach V8 inspector to each test
-    --verbose-server   Stream WPT server stdout/stderr while tests run
-    --no-ignore        Include tests marked with {"ignore": true}
-`);
+    console.log(getUpdateUsage());
     Deno.exit(1);
   }
   const startTime = Date.now();
@@ -559,16 +510,7 @@ Options:
 function listTests() {
   assert(Array.isArray(options.rest), "filter must be array");
   if (!options.hasFilters && !options.all) {
-    console.log(`Usage: wpt.ts list [OPTIONS] [-- <filters...>]
-
-Print the matching WPT test files without running them.
-
-Either specify test filters or use --all to list the entire suite:
-
-    wpt.ts list -- fetch/api/basic
-    wpt.ts list -- /WebCryptoAPI/getRandomValues.any.html
-    wpt.ts list --all
-`);
+    console.log(getListUsage());
     Deno.exit(1);
   }
 
@@ -613,6 +555,76 @@ function listSkippedTests() {
     console.log(`${path}  # ${reason}`);
   }
   console.log(`\nListed ${skippedTests.length} skipped test files.`);
+}
+
+function getCommonUsageOptions(includeWptReport: boolean): string {
+  const lines = [
+    "Options:",
+    "    --all              Run all tests",
+    "    --quiet            Only print failing test cases",
+    "    --jobs=<n>         Limit how many test partitions run in parallel",
+    "    --retries=<n>      Retry failing tests up to n attempts",
+    "    --timeout-scale=n  Multiply per-test timeouts by n",
+    "    --file-timeout-ms  Override the full-file timeout budget in milliseconds",
+    "    --fail-fast        Stop after the first unexpected failure",
+    "    --release          Use the release build of Deno",
+    "    --binary=<path>    Use a specific Deno binary",
+    "    --json=<file>      Write test results as JSON",
+  ];
+  if (includeWptReport) {
+    lines.push("    --wptreport=<file> Write results in wptreport format");
+  }
+  lines.push(
+    "    --inspect-brk      Attach V8 inspector to each test",
+    "    --verbose-server   Stream WPT server stdout/stderr while tests run",
+    '    --no-ignore        Include tests marked with {"ignore": true}',
+  );
+  if (includeWptReport) {
+    lines.push("    --exit-zero        Exit with code 0 even on failures");
+  }
+  return lines.join("\n");
+}
+
+function getRunUsage(): string {
+  return `Usage: wpt.ts run [OPTIONS] [-- <filters...>]
+
+Run WPT tests and check results against expectations.
+
+Either specify test filters or use --all to run the entire suite:
+
+    wpt.ts run -- fetch/api/basic
+    wpt.ts run -- /WebCryptoAPI/getRandomValues.any.html
+    wpt.ts run --all
+
+${getCommonUsageOptions(true)}
+`;
+}
+
+function getUpdateUsage(): string {
+  return `Usage: wpt.ts update [OPTIONS] [-- <filters...>]
+
+Run WPT tests and update expectations to match current results.
+
+Either specify test filters or use --all to update the entire suite:
+
+    wpt.ts update -- fetch/api/basic
+    wpt.ts update --all
+
+${getCommonUsageOptions(false)}
+`;
+}
+
+function getListUsage(): string {
+  return `Usage: wpt.ts list [OPTIONS] [-- <filters...>]
+
+Print the matching WPT test files without running them.
+
+Either specify test filters or use --all to list the entire suite:
+
+    wpt.ts list -- fetch/api/basic
+    wpt.ts list -- /WebCryptoAPI/getRandomValues.any.html
+    wpt.ts list --all
+`;
 }
 
 function newExpectation(
