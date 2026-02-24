@@ -116,7 +116,7 @@ running them:
 
 Use `./tests/wpt/wpt.ts list-skipped` to inspect manifest tests that are being
 filtered out by hard-coded runner skip rules such as HTTP/2-only coverage or
-unsupported worker variants.
+unsupported worker variants. It accepts the same trailing filters as `list`.
 
 ## Expectation file format
 

@@ -524,10 +524,12 @@ function listTests() {
 
 function listSkippedTests() {
   const skippedTests: { path: string; reason: string }[] = [];
+  const filter = new TestFilter(options.rest);
   forEachManifestVariation(getManifest().items.testharness, "", (url) => {
     const reason = getDiscoverySkipReason(url.pathname);
-    if (reason != null) {
-      skippedTests.push({ path: url.pathname + url.search, reason });
+    const path = url.pathname + url.search;
+    if (reason != null && filter.matches(path)) {
+      skippedTests.push({ path, reason });
     }
   });
   skippedTests.sort((a, b) => a.path.localeCompare(b.path));
