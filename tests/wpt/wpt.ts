@@ -227,6 +227,12 @@ interface TestToRun {
   expectation: boolean | TestExpectation;
 }
 
+interface ExecutedTestResult {
+  attempts: number;
+  result: TestResult;
+  test: TestToRun;
+}
+
 function getTestTimeout(test: TestToRun) {
   const scale = getTimeoutScale();
   if (Deno.env.get("CI")) {
@@ -259,7 +265,7 @@ async function run() {
 
   const retryCount = getRetryCount();
   const results = await runWithTestUtil(options.verboseServer, async () => {
-    const results: { test: TestToRun; result: TestResult }[] = [];
+    const results: ExecutedTestResult[] = [];
     const inParallel = !(cores === 1 || tests.length === 1);
     // ideally we would parallelize all tests, but we ran into some flakiness
     // on the CI, so here we're partitioning based on the start of the test path
@@ -279,8 +285,10 @@ async function run() {
           getTestTimeout(test),
           getFileTimeoutMs(),
         );
+        let attempts = 1;
         if (shouldRetryTest(test.expectation, retryCount, result)) {
           for (let attempt = 2; attempt <= retryCount; attempt++) {
+            attempts = attempt;
             console.log(
               yellow(
                 `Retrying test ${test.path} (attempt ${attempt}/${retryCount})`,
@@ -305,7 +313,7 @@ async function run() {
             }
           }
         }
-        results.push({ test, result });
+        results.push({ attempts, test, result });
         if (inParallel) {
           console.log(`${blue("-".repeat(40))}\n${bold(test.path)}\n`);
         }
@@ -355,7 +363,7 @@ async function run() {
 }
 
 async function generateWptReport(
-  results: { test: TestToRun; result: TestResult }[],
+  results: ExecutedTestResult[],
   startTime: number,
   endTime: number,
 ) {
@@ -468,7 +476,7 @@ async function update() {
   console.log(`Going to run ${tests.length} test files.`);
 
   const results = await runWithTestUtil(options.verboseServer, async () => {
-    const results = [];
+    const results: ExecutedTestResult[] = [];
 
     for (const test of tests) {
       console.log(`${blue("-".repeat(40))}\n${bold(test.path)}\n`);
@@ -480,7 +488,7 @@ async function update() {
         { long: 60_000, default: 10_000 },
         getFileTimeoutMs(),
       );
-      results.push({ test, result });
+      results.push({ attempts: 1, test, result });
       reportVariation(result, test.expectation);
       if (options.failFast && hasUnexpectedFailure(result, test.expectation)) {
         throw new Error(`Stopping after first unexpected failure: ${test.path}`);
@@ -611,7 +619,7 @@ Either specify test filters or use --all to list the entire suite:
 }
 
 function newExpectation(
-  results: { test: TestToRun; result: TestResult }[],
+  results: ExecutedTestResult[],
 ): Expectation {
   const resultTests: Record<
     string,
@@ -712,7 +720,7 @@ function insertExpectation(
 }
 
 function reportFinal(
-  results: { test: TestToRun; result: TestResult }[],
+  results: ExecutedTestResult[],
   duration: number,
 ): number {
   const finalTotalCount = results.length;
@@ -831,14 +839,13 @@ function hasUnexpectedFailure(
 }
 
 function createJsonReportEntry({
+  attempts,
   test,
   result,
-}: {
-  test: TestToRun;
-  result: TestResult;
-}) {
+}: ExecutedTestResult) {
   const metadata = Object.fromEntries(test.options.script_metadata ?? []);
   return {
+    attempts,
     file: test.path,
     url: test.url.href,
     name: metadata.title ?? null,

@@ -96,7 +96,8 @@ The `update` command accepts the same flags as `run` (`--release`, `--binary`,
 `--quiet`, `--json`, `--no-ignore`, `--inspect-brk`).
 
 JSON output includes the file path, URL, manifest timeout class, normalized
-expectation metadata, harness result, stderr, and detailed subtest statuses.
+expectation metadata, retry attempt count, harness result, stderr, and detailed
+subtest statuses.
 
 ## Listing tests
 
