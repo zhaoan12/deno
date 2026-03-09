@@ -524,6 +524,15 @@ function listTests() {
 
   const filter = new TestFilter(options.rest);
   const tests = discoverTestsToRun(filter);
+  if (json) {
+    const output = tests.map((test) => ({
+      expectation: normalizeExpectation(test.expectation),
+      file: test.path,
+      timeout: test.options.timeout ?? "default",
+      url: test.url.href,
+    }));
+    Deno.writeTextFileSync(json, JSON.stringify(output) + "\n");
+  }
   for (const test of tests) {
     console.log(test.path);
   }
