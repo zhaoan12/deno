@@ -5659,6 +5659,18 @@ mod tests {
   }
 
   #[test]
+  fn test_utc_now_rfc3339_precision_modes() {
+    let seconds = utc_now_rfc3339(true);
+    let full = utc_now_rfc3339(false);
+
+    assert!(seconds.ends_with('Z'));
+    assert!(full.ends_with('Z'));
+    assert!(seconds.len() <= full.len());
+    assert!(chrono::DateTime::parse_from_rfc3339(&seconds).is_ok());
+    assert!(chrono::DateTime::parse_from_rfc3339(&full).is_ok());
+  }
+
+  #[test]
   fn test_check_net_no_flag() {
     set_prompter(Box::new(TestPrompter));
     let parser = TestPermissionDescriptorParser;
