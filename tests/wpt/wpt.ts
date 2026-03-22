@@ -550,6 +550,9 @@ function listSkippedTests() {
     }
   });
   skippedTests.sort((a, b) => a.path.localeCompare(b.path));
+  if (json) {
+    Deno.writeTextFileSync(json, JSON.stringify(skippedTests) + "\n");
+  }
 
   for (const { path, reason } of skippedTests) {
     console.log(`${path}  # ${reason}`);

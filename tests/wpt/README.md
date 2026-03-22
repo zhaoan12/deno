@@ -120,7 +120,8 @@ expectations, and timeout classes without starting the WPT server.
 
 Use `./tests/wpt/wpt.ts list-skipped` to inspect manifest tests that are being
 filtered out by hard-coded runner skip rules such as HTTP/2-only coverage or
-unsupported worker variants. It accepts the same trailing filters as `list`.
+unsupported worker variants. It accepts the same trailing filters as `list`,
+and `--json=<file>` writes the skipped paths with their exclusion reasons.
 
 ## Expectation file format
 
